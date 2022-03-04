@@ -1,0 +1,230 @@
+---
+  title: "homework 3"
+author: "mela"
+date: "04/03/2022"
+output: html_document
+
+library(tidyverse)
+#options
+options(scipen=5, digits=3)
+
+#read data set
+library(readxl)
+stroop_data<-stroop_standing_data
+
+#Variable types
+glimpse(stroop_data)
+class(stroop_data$rt)
+class(stroop_data$...11)
+unique(stroop_data$stimulus)
+unique(stroop_data$trial)
+unique(stroop_data$phase)
+unique(stroop_data$...11)
+
+######Clean and Manipulate data##########
+
+#remove age,gender, trial, stimulus and 11 from data (unnecessary)
+
+stroop_data<-stroop_data %>% 
+  select(-age, -gender, -11, -trial, -stimulus)
+
+#filter to see where incomplete data lies
+stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(!complete.cases(.)) %>% 
+  view()
+
+#remove incomplete data 
+stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(!complete.cases(.)) %>% 
+  drop_na(rt, correct) %>% 
+  view()
+
+
+#isolate sitting and standing
+stroop_data<-stroop_data%>%
+  select(subject, condition, phase, congruency, rt, correct)%>%
+  filter(phase %in% c("sitting", "standing")) %>% 
+  view()
+
+
+#isolate congruent and incongruent
+
+stroop_data<-stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(congruency %in% c("congruent", "incongruent")) %>% 
+  view()
+
+#remove 999
+stroop_data<-subset(stroop_data, correct!="999") %>% 
+  view()
+
+summary(stroop_data)
+
+
+####dividing variables####
+
+#create congruent, sitting and standing variables
+
+CSI<-stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(phase %in% c("sitting") &
+           congruency %in% c("congruent"))
+view(CSI)
+summary(CSI)
+
+CST<-stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(phase %in% c("standing") &
+           congruency %in% c("congruent"))
+view(CST)
+summary(CST)
+
+
+#create incongruent, sitting and standing variables
+ICSI<-stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(phase %in% c("sitting") &
+           congruency %in% c("incongruent"))
+view(ICSI)
+summary(ICSI)
+
+ICST<-stroop_data %>% 
+  select(subject, condition, phase, congruency, rt, correct) %>% 
+  filter(phase %in% c("standing") &
+           congruency %in% c("incongruent"))
+view(ICST)
+summary(ICST)
+
+congr<- combine(CSI, CST)
+view(congr)
+
+incongr<-combine(ICSI, ICST)
+view(incongr)
+
+
+####fit to a model####
+lm(y ~ x1 + x2)
+summary(model)
+
+stroop_FM<-lm(rt~ congruency, phase)
+
+summary(stroop_FM)
+
+######Plot graph######
+
+
+library(ggplot2)
+#Box plot
+stroop_data %>%
+  ggplot(aes(rt,congruency, fill = phase)) +
+  geom_boxplot(alpha = 0.3) +
+  labs(title = "Boxplot of a numeric variable",
+       subtitle = "disagregated by categorical variable",
+       x = "rt") +
+  theme(legend.position = "none")
+
+#density plot
+stroop_data %>%
+  ggplot(aes(rt, fill = phase)) +
+  geom_density(alpha = 0.2) +
+  facet_wrap(~congruency) +
+  labs(title = "Density plot of a numeric variable",
+       subtitle = "disagregated by two categorical variables",
+       x = "phase",
+       y = "rt") +
+  theme(legend.position = "none")
+
+stroop_data%>%
+  ggplot(aes(congruency, fill = phase)) +
+  geom_bar(stat = "count", alpha = .5,
+           position="dodge",
+           show.legend = F)+
+  labs(title = "Grouped barplot",
+       x = "congruency",
+       y = "rt")
+
+
+#repeated measures=mixed model
+lm<-lm(rt~ phase + congruency, data=stroop_data)
+summary(lm)
+
+
+#Question 1.2 
+The plots/graphs show that the incongruent conditions
+show a faster recall than that of congruent. The mean reaction time of 
+incongruent standing is 941 seconds and for sitting is 925 seconds. 
+In terms of the congruent conditions for the standing condition, reaction time
+was 811 seconds and sitting is 815 seconds.
+
+These results confirm the idea that incongruent standing created the fastest reaction 
+time on average. 
+in the congruent condition in total (sitting (1007) and standing (752) condition),
+the max correct was 1759. For the incongruent condition the max correct for both variables 
+(standing (813) and sitting (978)) was 1791. This shows that the accuracy was very similar but reaction
+time was still faster.
+
+
+
+
+#########Question 2########
+
+library(plotly)
+library(stats)
+data(spotify)
+
+summary(spotify)
+set("~/PS947/week 5")
+set("~/PS947/week 5/spotify_cleaned.csv/spotifier/Data")
+
+library(tidyverse)
+install.packages("blavaan")
+library(lavaan)
+#options
+options(scipen=5, digits=3)
+
+#read data set
+head(spotify)
+tail(spotify)
+summary(spotify)
+spotifyclean<-spotify_cleaned[c("tempo", "energy", "danceability", "loudness", "valence", "acousticness", "instrumentalness", "key", "liveness", "mode","speechiness")]
+
+spotifyunclean<-spotify[c("tempo", "energy", "danceability", "loudness", "valence", "acousticness", "instrumentalness", "key", "liveness", "mode","speechiness")]
+
+#####PCA######
+#pca unclean data
+UNSP_PCA<-prcomp(t(spotifyunclean), center=FALSE, scale=FALSE)
+summary(UNSP_PCA)
+
+#pca clean data
+CSP_PCA<-prcomp(spotifyclean, center = FALSE, scale = FALSE)
+summary(CSP_PCA)
+
+#pca plot
+
+plot(UNSP_PCA$x[,1], UNSP_PCA$x[,2])+
+  plot(CSP_PCA$x[,1], CSP_PCA$x[,2])
+
+#Q3.2
+
+The components we focus on in the data is PC1 and PC2. By looking at them through the unclean spotify PCA dat you can see that the proportion stays relatively the same(0.999 (PC1) and 0.99963 (PC2)). When you look at the standard deviation however, we see that there is a large difference betweeen the PC1(544.897) and PC2 (17.46526) this can be down to the fact that the data is not scaled therefore there will be large discrepencies wwithin the data (the meteric mesurements are not the same. This is true for the cleaned unscaled version as well (PC1, 122.149 and PC2 (3.91515)).
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     #Q3.3
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     We can improve the research by scaling the data. By doing this we are equalising the numerical variables so that all are being meaured by the same scale, creating a result which would be more valid and fair.
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ####scaling the data####
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     UNSP_SC_PCA<-prcomp(spotifyunclean, scale = TRUE)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     UNSP_SC_PCA
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     CSP_SC_PCA<- prcomp(spotifyclean, scale = TRUE)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     CSP_SC_PCA
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     #plot scaled data
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     plot(UNSP_SC_PCA$x[,1], UNSP_SC_PCA$x[,2])+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                       plot(CSP_SC_PCA$x[,1], CSP_SC_PCA$x[,2])
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
